@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+var logger = require('../logger')
+var cluster = require('cluster')
+var numCPUs = require('os').cpus().length
+ console.log("Welcome to wwww")
+var envVar = process.env.APP_ENVIRONMENT
+if (envVar && cluster.isMaster) {
+  logger.debug(`Master ${process.pid} is running`)
+  for (var i = 0; i < numCPUs; i++) {
+    cluster.fork()
+  }
+  cluster.on('exit', function (worker, code, signal) {
+    logger.debug('worker ' + worker.process.pid + ' died')
+    cluster.fork()
+  })
+
+  // Log when a worker starts listening
+  cluster.on('listening', function (worker, address) {
+    logger.debug('Worker started with PID ' + worker.process.pid + '.')
+  })
+} else {
+  logger.debug('App loaded by PID ' + process.pid)
+  require('../mongodb/Connections')
+}
